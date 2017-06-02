@@ -18,32 +18,26 @@ void main()
 	int i, j;
 	double xmin = -20, xmax = 20, ymin = 1, ymax = 11;
 	double dx, dy;
+	double dx2, dy2;
+	double dxx, dyy;
 	double	*x, *y;
-	double	*XX, *YY;
-
+	
+	// Define Parabolic Coordinates
 	x = (double *)mkl_malloc(NX * sizeof(double), 64);
 	y = (double *)mkl_malloc(MY * sizeof(double), 64);
-
-	XX = (double *)mkl_malloc(NX*MY * sizeof(double), 64);
-	YY = (double *)mkl_malloc(NX*MY * sizeof(double), 64);
 	
-	// LINSPACE ROUTINE -- Construct x-vector
 	x = linspace(xmin, xmax, NX);
 	y = linspace(ymin, ymax, MY);
 
-	// Construct XX array
-	for (j = 0; j < MY; ++j)
-		for (i = 0; i < NX; ++i)
-		{
-			XX[j * NX + i] = x[i];
-		}
+	dx = x[1] - x[0];
+	dx2 = 2 * dx;
+	dxx = dx * dx;
 
-	// Construct YY array
-	for (j = 0; j < MY; ++j)
-		for (i = 0; i < NX; ++i)
-		{
-			YY[j * NX + i] = y[j];
-		}
+	dy = y[1] - y[0];
+	dy2 = 2 * dy;
+	dyy = dy * dy;
+
+	// Compute Mapping: Parabolic -> Cartesian
 
 	auto allEnd = Clock::now();
 	std::cout << "Total Runtime: " << std::chrono::duration_cast<std::chrono::nanoseconds>(allEnd - allStart).count() << " nanoseconds" << std::endl;
@@ -66,4 +60,25 @@ double * linspace(double vMin, double vMax, MKL_INT nInterval)
 	}
 
 	return v;
+}
+
+std::tuple<double *, double *, double *, double *, double *, double *, double *, double *, double *, double *> Para2Cart()
+{
+	int i, j;
+	double *pX, *pY;
+
+	pX = (double *)mkl_malloc(NX * sizeof(double), 64);
+	pY = (double *)mkl_malloc(MY * sizeof(double), 64);
+
+	for (i = 0; i < NX; ++i)
+	{
+		if (i <= NX)
+		{
+			pX[i] = pow((-1 / 2) * abs(xmax - xmin)*abs((ii - ((NX - 1) / 2) - 1) / ((NX - 1) / 2)), xskew);
+		}
+		else if (i > NX)
+		{
+			pX[i] = pow(( 1 / 2) * abs(xmax - xmin)*abs((ii - ((NX - 1) / 2) - 1) / ((NX - 1) / 2)), xskew);
+		}
+	}
 }
