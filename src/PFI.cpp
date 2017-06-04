@@ -9,11 +9,13 @@ typedef std::chrono::high_resolution_clock Clock;
 
 // function declarations
 double * linspace(double vMin, double vMax, MKL_INT nInterval);
+struct CartesianCoordinates Para2Cart(struct ParabolicCoordinates *pCOORD);
+
 struct ParabolicCoordinates
 {
 	int NX, MY;
 	double xmin, xmax, ymin, ymax;
-	double x, y;
+	double *x, *y;
 	double dx, dy;
 	double dx2, dy2;
 	double dxx, dyy;
@@ -24,7 +26,7 @@ struct CartesianCoordinates
 {
 	
 	double bx, by; 
-	double pX, pY;
+	double *pX, *pY;
 	double mu, dmux, dmuy;
 	double eta, detax, detay;
 
@@ -41,13 +43,10 @@ void main()
 	double dx2, dy2;
 	double dxx, dyy;
 	double	*x, *y;
-	struct ParabolicCoordinates * pCOORD = new ParabolicCoordinates;
-	struct CartesianCoordinates * cCOORD = new CartesianCoordinates;
+	struct ParabolicCoordinates *pCOORD = new ParabolicCoordinates;
+	struct CartesianCoordinates *cCOORD = new CartesianCoordinates;
 
 	// Define Parabolic Coordinates
-	x = (double *)mkl_malloc(NX * sizeof(double), 64);
-	y = (double *)mkl_malloc(MY * sizeof(double), 64);
-	
 	x = linspace(xmin, xmax, NX);
 	y = linspace(ymin, ymax, MY);
 
@@ -65,8 +64,8 @@ void main()
 	pCOORD->xmax = xmax;
 	pCOORD->ymin = ymin;
 	pCOORD->ymax = ymax;
-	pCOORD->x = *x;
-	pCOORD->y = *y;
+	pCOORD->x = x;
+	pCOORD->y = y;
 	pCOORD->dx = dx;
 	pCOORD->dx2 = dx2;
 	pCOORD->dxx = dxx;
@@ -75,7 +74,8 @@ void main()
 	pCOORD->dyy = dyy;
 
 	// Compute Mapping: Parabolic -> Cartesian
-
+	*cCOORD = Para2Cart(pCOORD);
+	
 	auto allEnd = Clock::now();
 	std::cout << "Total Runtime: " << std::chrono::duration_cast<std::chrono::nanoseconds>(allEnd - allStart).count() << " nanoseconds" << std::endl;
 }
@@ -101,23 +101,44 @@ double * linspace(double vMin, double vMax, MKL_INT nInterval)
 
 
 
-void Para2Cart(struct ParabolicCoordinates pCOORD)
+CartesianCoordinates Para2Cart(struct ParabolicCoordinates *pCOORD)
 {
 	int i, j;
-	double *pX, *pY;
+	pCOORD->x;
+	int NX = pCOORD->NX;
+	int MY = pCOORD->MY;
+	int xmin = pCOORD->xmin;
+	int xmax = pCOORD->xmax;
+	int ymin = pCOORD->ymin;
+	int ymax = pCOORD->ymax;
+	double *x = pCOORD->x;
+	double xskew, yskew;
 
+	double *pX, *pY;
+	
+	struct CartesianCoordinates * cCOORD = new CartesianCoordinates;
+	xskew = 1;
+	yskew = 1;
 	pX = (double *)mkl_malloc(NX * sizeof(double), 64);
 	pY = (double *)mkl_malloc(MY * sizeof(double), 64);
 
 	for (i = 0; i < NX; ++i)
 	{
-		if (i <= NX)
+		if (x[i] <= 0.)
 		{
-			pX[i] = pow((-1 / 2) * abs(xmax - xmin)*abs((ii - ((NX - 1) / 2) - 1) / ((NX - 1) / 2)), xskew);
+			pX[i] = pow((-1 / 2) * abs(xmax - xmin)*abs((i - ((NX - 1) / 2) - 1) / ((NX - 1) / 2)), xskew);
 		}
-		else if (i > NX)
+		else if (x[i] > 0.)
 		{
-			pX[i] = pow(( 1 / 2) * abs(xmax - xmin)*abs((ii - ((NX - 1) / 2) - 1) / ((NX - 1) / 2)), xskew);
+			pX[i] = pow(( 1 / 2) * abs(xmax - xmin)*abs((i - ((NX - 1) / 2) - 1) / ((NX - 1) / 2)), xskew);
 		}
 	}
+
+	for (j = 0; j < MY; ++j)
+	{
+		pY[j] = ymin + abs(ymax - ymin) * pow(((j - 1) / (MY - 1)), yskew);
+	}
+
+	cCOORD->pX = pX;
+	return *cCOORD;
 }
